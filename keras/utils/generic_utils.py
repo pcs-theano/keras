@@ -261,9 +261,9 @@ class Progbar(object):
             eta = time_per_unit * (self.target - current)
             info = ''
             if current < self.target:
-                info += ' - ETA: %ds' % eta
+                info += ' - ETA: %.2fs' % eta
             else:
-                info += ' - %ds' % (now - self.start)
+                info += ' - %.2fs' % (now - self.start)
             for k in self.unique_values:
                 info += ' - %s:' % k
                 if isinstance(self.sum_values[k], list):
@@ -287,7 +287,7 @@ class Progbar(object):
 
         if self.verbose == 2:
             if current >= self.target:
-                info = '%ds' % (now - self.start)
+                info = '%.2fs' % (now - self.start)
                 for k in self.unique_values:
                     info += ' - %s:' % k
                     avg = self.sum_values[k][0] / max(1, self.sum_values[k][1])
