@@ -1383,6 +1383,10 @@ def cos(x):
     return tf.cos(x)
 
 
+def local_response_normalize(x, alpha=1e-4, beta=0.75, k=2, n=5):
+    raise NotImplementedError("LRN is not available for tensorflow so far!")
+
+
 def normalize_batch_in_training(x, gamma, beta,
                                 reduction_axes, epsilon=1e-3):
     """Computes mean and std for batch then apply batch_normalization on batch.

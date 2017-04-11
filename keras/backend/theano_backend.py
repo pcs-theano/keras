@@ -448,6 +448,14 @@ def cos(x):
     return T.cos(x)
 
 
+def local_response_normalize(x, alpha=1e-4, beta=0.75, k=2, n=5):
+    if 4 == x.ndim:
+        return T.nnet.lrn(x, alpha, beta, k, n)
+    else:
+        raise NotImplementedError('LRN: MKL not available or dimension is '
+                                  'not supported, ndim=%.' % x.ndim)
+
+
 def normalize_batch_in_training(x, gamma, beta,
                                 reduction_axes, epsilon=1e-3):
     """Computes mean and std for batch then apply batch_normalization on batch.

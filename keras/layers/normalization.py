@@ -3,6 +3,31 @@ from .. import initializations, regularizers
 from .. import backend as K
 
 
+class LocalResponseNormalization(Layer):
+    def __init__(self, alpha=1e-4, beta=0.75, k=2, n=5, **kwargs):
+        self.alpha = alpha
+        self.beta = beta
+        self.k = k
+        self.n = n
+
+        super(LocalResponseNormalization, self).__init__(**kwargs)
+
+    def call(self, x, mask=None):
+        return K.local_response_normalization(x=self.x,
+                                              alpha=self.alpha,
+                                              beta=self.beta,
+                                              k=self.k,
+                                              n=self.n)
+
+    def get_config(self):
+        config = {'alpha': self.alpha,
+                  'beta': self.beta,
+                  'k': self.k,
+                  'n': self.n}
+        base_config = super(LocalResponseNormalization, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class BatchNormalization(Layer):
     """Batch normalization layer (Ioffe and Szegedy, 2014).
 
