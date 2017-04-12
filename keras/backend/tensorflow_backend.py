@@ -2663,6 +2663,12 @@ def conv1d(x, kernel, stride=1, border_mode='valid',
     return x
 
 
+def group_conv2d(x, kernel, bias, strides=(1, 1), border_mode='valid',
+                 dim_ordering='default',
+                 image_shape=None, filter_shape=None, filter_dilation=(1, 1), group=1):
+    raise NotImplementedError("group conved is not available for tensorflow so far!")
+
+
 def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
            dim_ordering='default',
            image_shape=None, filter_shape=None, filter_dilation=(1, 1)):

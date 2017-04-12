@@ -391,7 +391,7 @@ class Convolution2D(Layer):
                  W_regularizer=None, b_regularizer=None,
                  activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
-                 bias=True, **kwargs):
+                 bias=True, group=1, **kwargs):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
         if border_mode not in {'valid', 'same', 'full'}:
@@ -417,12 +417,17 @@ class Convolution2D(Layer):
         self.bias = bias
         self.input_spec = [InputSpec(ndim=4)]
         self.initial_weights = weights
+        self.group = group
         super(Convolution2D, self).__init__(**kwargs)
 
     def build(self, input_shape):
         if self.dim_ordering == 'th':
             stack_size = input_shape[1]
-            self.W_shape = (self.nb_filter, stack_size, self.nb_row, self.nb_col)
+            if self.group == 1:
+                self.W_shape = (self.nb_filter, stack_size, self.nb_row, self.nb_col)
+            else:
+                self.W_shape = (self.group, self.nb_filter / self.group,
+                                stack_size / self.group, self.nb_row, self.nb_col)
         elif self.dim_ordering == 'tf':
             stack_size = input_shape[3]
             self.W_shape = (self.nb_row, self.nb_col, stack_size, self.nb_filter)
@@ -469,17 +474,42 @@ class Convolution2D(Layer):
             return (input_shape[0], rows, cols, self.nb_filter)
 
     def call(self, x, mask=None):
-        output = K.conv2d(x, self.W, strides=self.subsample,
-                          border_mode=self.border_mode,
-                          dim_ordering=self.dim_ordering,
-                          filter_shape=self.W_shape)
-        if self.bias:
-            if self.dim_ordering == 'th':
-                output += K.reshape(self.b, (1, self.nb_filter, 1, 1))
-            elif self.dim_ordering == 'tf':
-                output += K.reshape(self.b, (1, 1, 1, self.nb_filter))
-            else:
-                raise ValueError('Invalid dim_ordering:', self.dim_ordering)
+        if self.dim_ordering == 'th':
+            try:
+                output = K.group_conv2d(x, self.W, self.b, strides=self.subsample,
+                                        border_mode=self.border_mode,
+                                        dim_ordering=self.dim_ordering,
+                                        filter_shape=self.W_shape,
+                                        group=self.group)
+            except Exception as e:
+                print (str(e))
+                if self.group == 2:
+                    raise RuntimeError('Not supporting group without MKL OP!')
+
+                output = K.conv2d(x, self.W, strides=self.subsample,
+                                  border_mode=self.border_mode,
+                                  dim_ordering=self.dim_ordering,
+                                  filter_shape=self.W_shape)
+                if self.bias:
+                    if self.dim_ordering == 'th':
+                        output += K.reshape(self.b, (1, self.nb_filter, 1, 1))
+                    elif self.dim_ordering == 'tf':
+                        output += K.reshape(self.b, (1, 1, 1, self.nb_filter))
+                    else:
+                        raise ValueError('Invalid dim_ordering:', self.dim_ordering)
+        else:
+            output = K.conv2d(x, self.W, strides=self.subsample,
+                              border_mode=self.border_mode,
+                              dim_ordering=self.dim_ordering,
+                              filter_shape=self.W_shape)
+            if self.bias:
+                if self.dim_ordering == 'th':
+                    output += K.reshape(self.b, (1, self.nb_filter, 1, 1))
+                elif self.dim_ordering == 'tf':
+                    output += K.reshape(self.b, (1, 1, 1, self.nb_filter))
+                else:
+                    raise ValueError('Invalid dim_ordering:', self.dim_ordering)
+
         output = self.activation(output)
         return output
 
@@ -497,7 +527,8 @@ class Convolution2D(Layer):
                   'activity_regularizer': self.activity_regularizer.get_config() if self.activity_regularizer else None,
                   'W_constraint': self.W_constraint.get_config() if self.W_constraint else None,
                   'b_constraint': self.b_constraint.get_config() if self.b_constraint else None,
-                  'bias': self.bias}
+                  'bias': self.bias,
+                  'group': self.group}
         base_config = super(Convolution2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 

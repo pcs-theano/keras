@@ -12,6 +12,11 @@ try:
     from theano.tensor.nnet.nnet import softsign as T_softsign
 except ImportError:
     from theano.sandbox.softsign import softsign as T_softsign
+try:
+    import theano.sandbox.mkl as mkl
+except ImportError:
+    mkl = None
+
 import inspect
 import numpy as np
 from .common import _FLOATX, floatx, _EPSILON, image_dim_ordering
@@ -1486,6 +1491,41 @@ def conv1d(x, kernel, stride=1, border_mode='valid',
         border_mode: string, "same" or "valid".
     """
     raise NotImplementedError
+
+
+def group_conv2d(x, kernel, bias, strides=(1, 1), border_mode='valid',
+                 dim_ordering='default', image_shape=None,
+                 filter_shape=None, filter_dilation=(1, 1), group=1):
+    if mkl is None:
+        raise NotImplementedError("MKL engine for Theano is not available.")
+
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
+    if dim_ordering not in {'th', 'tf'}:
+        raise ValueError('Unknown dim_ordering ', dim_ordering)
+
+    x = _preprocess_conv2d_input(x, dim_ordering)
+    kernel = _preprocess_conv2d_kernel(kernel, dim_ordering)
+    th_border_mode = _preprocess_border_mode(border_mode)
+
+    if hasattr(kernel, '_keras_shape'):
+        kernel_shape = kernel._keras_shape
+    else:
+        # Will only work if `kernel` is a shared variable.
+        kernel_shape = kernel.eval().shape
+
+    image_shape = _preprocess_conv2d_image_shape(dim_ordering, image_shape)
+    filter_shape = _preprocess_conv2d_filter_shape(dim_ordering, filter_shape)
+
+    conv_out = mkl.mkl_conv.AbstractConvGroup(imshp=image_shape,
+                                              kshp=filter_shape,
+                                              subsmaple=strides,
+                                              border_mode=th_border_mode,
+                                              group=group)(x, kernel, bias)
+
+    conv_out = _postprocess_conv2d_output(conv_out, x, border_mode,
+                                          kernel_shape, strides, dim_ordering)
+    return conv_out
 
 
 def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
