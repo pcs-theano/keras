@@ -13,7 +13,7 @@ class LocalResponseNormalization(Layer):
         super(LocalResponseNormalization, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
-        return K.local_response_normalization(x=self.x,
+        return K.local_response_normalization(x=x,
                                               alpha=self.alpha,
                                               beta=self.beta,
                                               k=self.k,

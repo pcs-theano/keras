@@ -421,6 +421,7 @@ class Convolution2D(Layer):
         super(Convolution2D, self).__init__(**kwargs)
 
     def build(self, input_shape):
+        self._input_shape = input_shape
         if self.dim_ordering == 'th':
             stack_size = input_shape[1]
             if self.group == 1:
@@ -479,10 +480,11 @@ class Convolution2D(Layer):
                 output = K.group_conv2d(x, self.W, self.b, strides=self.subsample,
                                         border_mode=self.border_mode,
                                         dim_ordering=self.dim_ordering,
+                                        image_shape=self._input_shape,
                                         filter_shape=self.W_shape,
                                         group=self.group)
             except Exception as e:
-                print (str(e))
+                print ("Warning: Failed to call group_conv, due to: ", str(e))
                 if self.group == 2:
                     raise RuntimeError('Not supporting group without MKL OP!')
 

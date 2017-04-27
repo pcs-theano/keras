@@ -17,6 +17,12 @@ try:
 except ImportError:
     mkl = None
 
+try:
+    import theano.tensor.nnet.lrn as LRN
+except ImportError:
+    LRN = None
+
+
 import inspect
 import numpy as np
 from .common import _FLOATX, floatx, _EPSILON, image_dim_ordering
@@ -453,9 +459,12 @@ def cos(x):
     return T.cos(x)
 
 
-def local_response_normalize(x, alpha=1e-4, beta=0.75, k=2, n=5):
+def local_response_normalization(x, alpha=1e-4, beta=0.75, k=2, n=5):
+    if LRN is None:
+        raise NotImplementedError("LRN Op for Theano is not available.")
+
     if 4 == x.ndim:
-        return T.nnet.lrn(x, alpha, beta, k, n)
+        return LRN.lrn(x, alpha, beta, k, n)
     else:
         raise NotImplementedError('LRN: MKL not available or dimension is '
                                   'not supported, ndim=%.' % x.ndim)
@@ -1493,7 +1502,7 @@ def conv1d(x, kernel, stride=1, border_mode='valid',
     raise NotImplementedError
 
 
-def group_conv2d(x, kernel, bias, strides=(1, 1), border_mode='valid',
+def group_conv2d(x, kernel, bias=None, strides=(1, 1), border_mode='valid',
                  dim_ordering='default', image_shape=None,
                  filter_shape=None, filter_dilation=(1, 1), group=1):
     if mkl is None:
@@ -1519,7 +1528,7 @@ def group_conv2d(x, kernel, bias, strides=(1, 1), border_mode='valid',
 
     conv_out = mkl.mkl_conv.AbstractConvGroup(imshp=image_shape,
                                               kshp=filter_shape,
-                                              subsmaple=strides,
+                                              subsample=strides,
                                               border_mode=th_border_mode,
                                               group=group)(x, kernel, bias)
 
