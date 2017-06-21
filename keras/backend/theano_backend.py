@@ -971,10 +971,12 @@ class Function(object):
             if v not in unique_variables_to_update:
                 unique_variables_to_update[v] = nv
         updates = unique_variables_to_update.items()
+        # theano.printing.pydotprint(outputs, outfile="alexnet_train_before_compile.png", var_with_name_simple=True)
         self.function = theano.function(inputs, outputs, updates=updates,
                                         allow_input_downcast=True,
                                         on_unused_input='ignore',
                                         **kwargs)
+        # theano.printing.pydotprint(self.function, outfile="alexnet_train_after_compile.png", var_with_name_simple=True)
 
     def __call__(self, inputs):
         assert isinstance(inputs, (list, tuple))
@@ -1468,9 +1470,10 @@ def _preprocess_conv3d_filter_shape(dim_ordering, filter_shape):
 
 def _postprocess_conv2d_output(conv_out, x, border_mode, kernel_shape, strides, dim_ordering):
     if border_mode == 'same':
-        if kernel_shape[2] % 2 == 0:
+        # change from 2 to -2 for the case of group conv, kshp.ndim = 5
+        if kernel_shape[-2] % 2 == 0:
             conv_out = conv_out[:, :, :(x.shape[2] + strides[0] - 1) // strides[0], :]
-        if kernel_shape[3] % 2 == 0:
+        if kernel_shape[-1] % 2 == 0:
             conv_out = conv_out[:, :, :, :(x.shape[3] + strides[1] - 1) // strides[1]]
     if dim_ordering == 'tf':
         conv_out = conv_out.dimshuffle((0, 2, 3, 1))
